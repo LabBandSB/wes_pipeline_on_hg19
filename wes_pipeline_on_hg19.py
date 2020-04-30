@@ -6,10 +6,10 @@ example:
     # it is recommended to rename draft.json to save it from overwriting
     # initial config generation, full version
     python wes_pipeline_on_hg19.py \\
-        --draft_json ./draft.json \\
-        --project_root /path/to/save/wes/project/ \\
+        --draft_settings_json ./__draft_settings__.json \\
+        --project_root ./test_alignment \\
         --script_dir_name scripts \\
-        --fastq_dirs_list /path/to/fastq/gz/dir/ \\
+        --fastq_dirs_list ./test_fastq_gz \\
         --sample_delimiter . \\
         --fastq_extension .fastq.gz \\
         --R1_fastq_extension .R1.fastq.gz \\
@@ -31,10 +31,10 @@ example:
 """
 
 import argparse
+import copy
 import glob
 import json
 import os
-import copy
 from collections import defaultdict
 
 __NOT_READY__ = "NOT_READY"
@@ -340,8 +340,6 @@ def get_cmd_list_for_SSAP(sample_settings):
 
         get_cmd_vcf_concat(sample_settings),
         get_cmd_vcf_sort(sample_settings),
-
-        clear_after_competion(sample_settings)
     ]
     return cmd_list
 
@@ -384,6 +382,7 @@ def get_cmd(d):
     return cmd
 
 
+@reduce_spaces_and_newlines
 def clear_after_competion(d):
     d["token_suffix"] = "vcftools_sort_vcf"
     d["token"] = "{sample_dir}/token.{sample}.{token_suffix}".format(**d)
@@ -399,7 +398,7 @@ def clear_after_competion(d):
         # {gatk_SV_SNP_fil_vcf} {gatk_SV_INDEL_fil_vcf} # for vcftools concatenate - sometimes library doesnt loaded well
     else:
         cmd = ""
-    return reduce_spaces_and_newlines(cmd)
+    return cmd
 
 
 ###############################################################################
@@ -877,9 +876,11 @@ def write_cmd_list_to_file(sample_settings, cmd_list):
         sample_settings["project_script_dir"],
         sample_settings["sample"] + ".ss.sh",
     )
+    print("###")
     with open(script_file, "w") as f:
         f.write("#!/bin/bash\n\n")
-        for cmd in cmd_list:
+        for _, cmd in enumerate(cmd_list):
+            print("#", _, cmd)
             new_line = cmd + "\n\n"
             f.write(new_line)
 
