@@ -121,8 +121,19 @@ def parse_arguments_to_settings():
 
 
 def load_fastq_samples(settings):
+    def get_files_generator(dirs_list, extension):
+        for _dir in sorted(dirs_list):
+            for _file in sorted(os.listdir(_dir)):
+                if not _file:
+                    continue
+                _file_path = os.path.join(_dir, _file)
+                if os.path.isfile(_file_path) and _file_path.endswith(extension):
+                    yield _file_path                
+                elif os.path.isdir(_file_path):
+                    yield from get_files_generator([_file_path], extension)
+
     if settings["debug"]:
-        print("# load_fastq_samples: settings\n#", settings)
+        print("# load_fastq_samples: load_settings\n#", settings)
     #
     fastq_dirs_list = settings["fastq_dirs_list"]
     sample_delimiter = settings["sample_delimiter"]
@@ -131,13 +142,12 @@ def load_fastq_samples(settings):
     R2_fastq_extension = settings["R2_fastq_extension"]
     #
     sample_dict = defaultdict(lambda: defaultdict(str))
-    for fastq_dir in fastq_dirs_list:
-        for fastq in glob.iglob(fastq_dir + '/**' + fastq_extension):
-            sample = os.path.basename(fastq).split(sample_delimiter)[0]
-            if fastq.endswith(R1_fastq_extension):
-                sample_dict[sample]["read1"] = fastq
-            elif fastq.endswith(R2_fastq_extension):
-                sample_dict[sample]["read2"] = fastq
+    for fastq in get_files_generator(fastq_dirs_list, fastq_extension):
+        sample = os.path.basename(fastq).split(sample_delimiter)[0]
+        if fastq.endswith(R1_fastq_extension):
+            sample_dict[sample]["read1"] = fastq
+        elif fastq.endswith(R2_fastq_extension):
+            sample_dict[sample]["read2"] = fastq
     sample_dict = {
         key: value
         for key, value in sample_dict.items()
@@ -145,7 +155,7 @@ def load_fastq_samples(settings):
     }  # to exclude unmerged samples
     #
     if settings["debug"]:
-        print("# load_fastq_samples: samples\n#", sample_dict)
+        print("# load_fastq_samples: loaded_samples\n#", sample_dict)
     return sample_dict
 
 
