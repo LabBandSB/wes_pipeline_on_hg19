@@ -4,7 +4,7 @@ example:
     python wes_pipeline_on_hg19.py
 
     # it is recommended to rename draft.json to save it from overwriting
-    # initial config generation, full version
+    # full version
     python wes_pipeline_on_hg19.py \\
         --draft_settings_json ./__draft_settings__.json \\
         --project_root ./test_alignment \\
@@ -16,6 +16,9 @@ example:
         --R2_fastq_extension .R2.fastq.gz \\
         --add_tokens \\
         --debug
+
+    # full version
+    python wes_pipeline_on_hg19.py -p PROJECT_DIR -f FASTQ_GZ_DIR 
 
     # precise config tuning
 
