@@ -633,7 +633,7 @@ def bash_gatk_HC_vcf(d):
         -T HaplotypeCaller
         -R {ref}
         -I {bam_gatk_PR_BR_BQSR}
-        -D {dbsnp}
+        --dbsnp {dbsnp}
         -L {target_region}
         --genotyping_mode DISCOVERY
         -stand_call_conf 30
@@ -657,7 +657,7 @@ def bash_gatk_UG_vcf(d):  # not tested, not ready
         -T UnifiedGenotyper
         -R {ref}
         -I {bam_gatk_PR_BR_BQSR}
-        -D {dbsnp}
+        --dbsnp {dbsnp}
         --genotyping_mode DISCOVERY
         -o {vcf_gatk_UG}
         --output_mode EMIT_ALL_SITES
