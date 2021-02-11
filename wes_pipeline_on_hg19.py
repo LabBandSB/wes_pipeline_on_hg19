@@ -17,7 +17,7 @@ example:
         --add_tokens \\
         --debug
 
-    # full version
+    # SHORT VERSION
     python wes_pipeline_on_hg19.py -p PROJECT_DIR -f FASTQ_GZ_DIR 
 
     # precise config tuning
@@ -44,6 +44,7 @@ __NOT_READY__ = "NOT_READY"
 __READY__ = "READY"
 __ALMOST_READY__ = "ALMOST_READY"
 __DRAFT_SETTINGS_FILE__ = "__draft_settings__.json"
+__FILENAME__ = "wes_pipeline_on_hg19.py"
 
 
 def main():
@@ -194,7 +195,7 @@ def save_project_settings_json(settings):
     print(f"# cd   {settings['project_script_dir']}")
     print(f"# more {project_settings_json_file}")
     print(f"# nano {project_settings_json_file}")
-    print(f"# python __script_name__.py -j {project_settings_json_file}")
+    print(f"# python {__FILENAME__} -j {project_settings_json_file}")
 
 
 def save_draft_settings_json():
@@ -208,7 +209,7 @@ def save_draft_settings_json():
             "R1_fastq_extension": ".R1.fastq.gz",
             "R2_fastq_extension": ".R2.fastq.gz",
 
-            "add_tokens": False,
+            "add_tokens": True,
             "debug": False,
             "samples_list": [],
 
@@ -809,7 +810,7 @@ def bash_gatk_VF_SNP_fil_vcf(d):
         {gatk}
         -T VariantFiltration
         -R {ref}
-        -V {vcf_gatk_SV_SNP_fil}
+        -V {vcf_gatk_SV_SNP_raw}
         --filterExpression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0"
         --filterName "SNP_FAIL"
         -o {vcf_gatk_SV_SNP_fil}
