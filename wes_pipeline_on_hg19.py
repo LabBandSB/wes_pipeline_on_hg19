@@ -906,7 +906,7 @@ def run_MS_pipeline(settings):
 
     sample_settings = copy.deepcopy(settings)
     sample_settings["sample"] = sample_settings['gatk_MSHC_name']
-    sample_settings = get_settings_for_SSAP(sample_settings)
+    sample_settings = get_settings_for_MSAP(sample_settings)
     sample_settings['input_bams'] = input_bams
     cmd_list = get_cmd_list_for_MSAP(sample_settings)
     write_cmd_list_to_file(sample_settings, cmd_list)
@@ -970,7 +970,39 @@ def bash_gatk_MSHC_vcf(d):
         -nct {number_of_threads}
         """.format(**d)
 
+def get_settings_for_MSAP(sample_dict):
+    sample = sample_dict["sample"]
+    sample_dir = os.path.join(sample_dict["project_root"], sample)
+    sample_path_prefix = os.path.join(sample_dir, sample)
 
+    _dict = {
+        "sample": sample,
+        "sample_dir": sample_dir,
+
+        "vcf_gatk_HC": sample_path_prefix + ".gatk_HC.vcf",
+        "bam_gatk_HC": sample_path_prefix + ".gatk_HC.bam",
+
+        "recal_gatk_VR_SNP": sample_path_prefix + ".gatk_VR_SNP.recal",
+        "tranches_gatk_VR_SNP": sample_path_prefix + ".gatk_VR_SNP.tranches",
+        "plots_gatk_VR_SNP": sample_path_prefix + ".gatk_VR_SNP_plots.Rscript",
+        "vcf_gatk_AR_SNP": sample_path_prefix + ".gatk_AR_SNP.vcf",
+
+        "recal_gatk_VR_INDEL": sample_path_prefix + ".gatk_VR_INDEL.recal",
+        "tranches_gatk_VR_INDEL": sample_path_prefix + ".gatk_VR_INDEL.tranches",
+        "plots_gatk_VR_INDEL": sample_path_prefix + ".gatk_VR_INDEL_plots.Rscript",
+        "vcf_gatk_AR_INDEL": sample_path_prefix + ".gatk_AR_INDEL.vcf",
+
+        "vcf_gatk_SV_SNP_raw": sample_path_prefix + ".gatk_SV_SNP_raw.vcf",
+        "vcf_gatk_SV_SNP_fil": sample_path_prefix + ".gatk_SV_SNP_fil.vcf",
+
+        "vcf_gatk_SV_INDEL_raw": sample_path_prefix + ".gatk_SV_INDEL_raw.vcf",
+        "vcf_gatk_SV_INDEL_fil": sample_path_prefix + ".gatk_SV_INDEL_fil.vcf",
+
+        "vcf_vcftools_concat": sample_path_prefix + ".vcftools_concat.FINAL.vcf",
+        "vcf_vcftools_sorted": sample_path_prefix + ".vcftools_sorted.FINAL.vcf",
+    }
+    sample_dict.update(_dict)
+    return sample_dict
 ###############################################################################
 if __name__ == "__main__":
     main()
