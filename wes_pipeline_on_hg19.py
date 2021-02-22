@@ -903,7 +903,7 @@ def run_MS_pipeline(settings):
     input_bams = ''
     for bam in get_files_generator([settings['project_root']], ".BQSR_BR.bam"):
         input_bams += ' -I '+ bam
-    print ('### ', input_bams)
+    print ('### input_bams : ', input_bams)
 
     sample_settings = copy.deepcopy(settings)
     sample_settings["sample"] = sample_settings['gatk_MSHC_name']
