@@ -903,6 +903,7 @@ def run_MS_pipeline(settings):
     input_bams = ''
     for bam in get_files_generator([settings['project_root']], ".BQSR_BR.bam"):
         input_bams += ' -I '+ bam
+    print ('### ', input_bams)
 
     sample_settings = copy.deepcopy(settings)
     sample_settings["sample"] = sample_settings['gatk_MSHC_name']
@@ -949,7 +950,7 @@ def get_cmd_list_for_MSAP(sample_settings):
 ###############################################################################
 def get_cmd_gatk_MSHC_vcf(d):
     d["token_suffix"] = "bam_2_vcf_gatk_HC"
-    d["files_list"] = []
+    d["files_list"] = ["1"]
     d["out_file"] = d["vcf_gatk_HC"]
     d["main_cmd"] = bash_gatk_MSHC_vcf(d)
     return get_cmd(d)
