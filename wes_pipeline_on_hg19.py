@@ -901,7 +901,7 @@ def write_cmd_list_to_file(sample_settings, cmd_list):
 
 def run_MS_pipeline(settings):
     input_bams = ''
-    for bam in get_files_generator([settings['project_root']], ".BQSR_BR.bam"):
+    for bam in get_files_generator([settings['project_root']], ".gatk_PR_BR_BQSR.bam"):
         input_bams += ' -I '+ bam
     print ('### input_bams : ', input_bams)
 
