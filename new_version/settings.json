@@ -1,0 +1,12 @@
+{
+    "fastq_dirs_list": [
+        "./"
+    ],
+    "fastq_extension": ".fastq.gz",
+    "R1_fastq_extension": ".R1.fastq.gz",
+    "R2_fastq_extension": ".R2.fastq.gz",
+    "R1_fastq_delimiter": "_",
+    "R2_fastq_delimiter": "_",
+    "project_dir": "./project",
+    "script_dir": "scripts"
+}
