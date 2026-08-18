@@ -1,0 +1,29 @@
+# Conda environment for the HaloPlex Cardio panel pipeline.
+#
+#   conda env create -f environment.yml
+#   conda activate haloplex
+#
+# Two things WILL bite you if you skip the README:
+#   1. GATK 3 needs Java 8. Newer JDKs fail with cryptic errors, so openjdk is
+#      pinned to 8 here. Do not "upgrade" it.
+#   2. bioconda ships gatk3 as a wrapper WITHOUT the jar (licensing). After
+#      creating the env you must register the jar manually — see README.md.
+name: haloplex
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.11
+  - openjdk=8          # GATK 3 requirement — pinned deliberately
+  - bwa=0.7.17
+  - samtools=1.19
+  - bcftools=1.19
+  - htslib=1.19        # provides bgzip + tabix
+  - picard=2.27
+  - gatk=3.8           # bioconda package name for GATK 3.8; jar registered separately
+  - vcftools=0.1.16    # provides vcf-concat, vcf-sort, vcf-merge
+  - fastqc=0.12
+  - perl=5.32          # ANNOVAR is Perl
+  - perl-vcftools-vcf
+  - multiqc=1.21       # optional, for aggregating per-sample QC
