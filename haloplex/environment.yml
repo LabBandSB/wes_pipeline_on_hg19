@@ -10,10 +10,15 @@
 #      download the tarball from the Broad by hand. GATK 4 is installed complete.
 #   2. Java 17, not Java 8. GATK 4 wants a modern JDK; GATK 3 required 8.
 name: haloplex
+# Channels: conda-forge and bioconda ONLY. `defaults` (repo.anaconda.com) is
+# deliberately absent — recent conda refuses to solve until its commercial Terms
+# of Service are accepted (`CondaToSNonInteractiveError`), which is not a decision
+# to make casually on an institution's behalf, and mixing it with conda-forge is a
+# well-known source of solver conflicts anyway. Create with:
+#   conda env create -f environment.yml --override-channels -c conda-forge -c bioconda
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - python=3.11
   - openjdk=17         # GATK 4 requirement (GATK 3 needed 8 — no longer relevant)
