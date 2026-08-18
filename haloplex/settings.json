@@ -12,6 +12,8 @@
 
     "project_dir": "/workspace/askhat-molkenov/workflow/haloplex/project",
     "script_dir": "/workspace/askhat-molkenov/workflow/haloplex/scripts",
+    "cohort_dir": "/workspace/askhat-molkenov/workflow/haloplex/cohort",
+    "cohort_name": "cardiopanel_haloplex_nla",
 
     "_comment_delimiter": "Sample files are named Haloplex_18.i7_160606.R1.fastq.gz — the sample id is everything before the FIRST dot, so the delimiter is '.', not '_' as in the WES defaults. With '_' every sample would collapse to the single name 'Haloplex'.",
 

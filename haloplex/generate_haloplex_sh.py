@@ -26,6 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULTS = {
     "RGPL": "ILLUMINA",
     "RGCN": "NLA",
+    "cohort_name": "cohort",
     "interval_padding": "50",
     "platform_unit": "HaloPlex",
     "threads": "4",
@@ -35,7 +36,7 @@ DEFAULTS = {
     "bcftools": "bcftools",
     "java": "java",
     "picard": "picard",
-    "gatk": "gatk3",
+    "gatk": "gatk",
     "vcf_concat": "vcf-concat",
     "vcf_sort": "vcf-sort",
     "vcf_merge": "vcf-merge",
@@ -44,8 +45,8 @@ DEFAULTS = {
 }
 
 REQUIRED = [
-    "ref", "dbsnp", "gold_indel", "hapmap_snp", "oneKG_indel", "oneKG_snp",
-    "onmi_snp", "target_region", "amplicons_region",
+    "ref", "dbsnp", "target_region", "amplicons_region",
+    "cohort_dir", "cohort_name",
     "annovar_dir", "annovar_humandb", "annovar_protocol", "annovar_operation",
 ]
 
@@ -145,6 +146,7 @@ def main():
 
     os.makedirs(d["script_dir"], exist_ok=True)
     os.makedirs(d["project_dir"], exist_ok=True)
+    os.makedirs(d["cohort_dir"], exist_ok=True)
 
     samples_dict = load_fastq_samples(settings)
     written = []
@@ -156,6 +158,11 @@ def main():
         }))
 
     print(f"generated {len(written)} sample scripts in {d['script_dir']}")
+    print()
+    print("Per-sample stage produces one GVCF each; nothing is genotyped yet.")
+    print(f"  ls {d['script_dir']}/*.sh | xargs -P 4 -n 1 bash")
+    print("Then, once every sample has finished, genotype the cohort ONCE:")
+    print(f"  ./run_cohort.sh {os.path.abspath(args.settings_json)}")
 
 
 if __name__ == "__main__":

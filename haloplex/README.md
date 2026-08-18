@@ -93,6 +93,12 @@ makes a Gaussian mixture model trainable on that. GATK's own documented fallback
 small targets is hard filtering — which the WES template already ran downstream of
 VQSR anyway. We keep that and drop the pretence.
 
+**And joint genotyping does not change this**, contrary to the natural assumption
+(including one I made earlier and am correcting here). 143 samples across 51.9 kb
+give on the order of hundreds to ~1500 variant *sites* — VariantRecalibrator wants
+thousands. The cohort is wide, not deep: joint calling adds samples per site, not
+sites. Hard filtering stays, and it lives in `run_cohort.sh`.
+
 ### 4. `-L` target restriction with padding — added `-ip 50`
 
 Calling is restricted to `Covered.bed`. Each region is padded by 50 bp because
@@ -101,9 +107,11 @@ or called with truncated context.
 
 ### 5. Coverage QC over the panel — new step
 
-A sample that failed enrichment still produces a perfectly valid-looking VCF, just
-with fewer calls. On a panel this small that is easy to miss. The new step reports
-mean depth and the fraction of target bases at ≥20× and ≥100× per sample.
+A sample that failed enrichment still produces a perfectly valid-looking GVCF, just
+with fewer calls — and once it is folded into the cohort, that failure is even
+harder to spot. The new step reports mean depth and the fraction of target bases at
+≥20× and ≥100× per sample; `run_cohort.sh` aggregates them and flags any sample
+below 90% at 20×.
 
 Note it measures over **`Amplicons.bed`** (what was physically amplified) while
 calling uses **`Covered.bed`**. Mixing the two up is the classic HaloPlex QC error —
@@ -111,7 +119,14 @@ it produces plausible numbers that mean something else.
 
 ### 6. ANNOVAR annotation — new step
 
-See below.
+Run **once on the cohort VCF**, not 143 times per sample: same result, a fraction of
+the work, one file to reason about. See below.
+
+### 6a. Genotyping moved from per-sample to cohort
+
+The WES pipeline emits a finished VCF per sample. This one emits a **GVCF** per
+sample and genotypes the whole cohort in a second stage. Reasons in "Why joint
+genotyping" below.
 
 ### 7. Smaller changes
 
@@ -193,32 +208,39 @@ conda env create -f environment.yml
 conda activate haloplex
 ```
 
+### Why GATK 4
+
+The WES pipeline this was derived from uses GATK 3 (`-T HaplotypeCaller`, `-o`).
+This one uses **GATK 4**, for three reasons:
+
+1. **GATK 3 cannot be installed unattended.** bioconda ships it as a wrapper
+   *without* the jar for licensing reasons; the jar must be downloaded from the
+   Broad by hand and registered with `gatk3-register`. GATK 4 installs complete
+   from bioconda.
+2. **`GenomicsDBImport`.** Joint genotyping across 143 samples is what the GVCFs
+   are for. GATK 4 has the tool built for it; GATK 3 would need `CombineGVCFs`
+   run in hand-managed batches.
+3. GATK 3 needs Java 8, which is itself EOL. GATK 4 runs on Java 17.
+
+The CLI differs accordingly: `gatk HaplotypeCaller -O out` rather than
+`gatk3 -T HaplotypeCaller -o out`.
+
 ### Checklist after creating the environment
 
-1. **Java must be 8.** GATK 3 fails on newer JDKs with unhelpful errors.
+1. **Verify every tool resolves:**
    ```bash
-   java -version        # expect "1.8.0_..."
-   ```
-2. **Register the GATK 3 jar.** bioconda ships a wrapper *without* the jar for
-   licensing reasons. Download `GenomeAnalysisTK-3.8-1` from the Broad, then:
-   ```bash
-   gatk3-register /path/to/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2
-   gatk3 --version      # must print 3.8-1-0-gf15c1c3ef
-   ```
-   Without this the pipeline fails at the first HaplotypeCaller step.
-3. **Verify every tool resolves:**
-   ```bash
-   for t in bwa samtools bcftools picard gatk3 vcf-concat vcf-sort bgzip tabix fastqc; do
+   for t in bwa samtools bcftools picard gatk vcf-sort bgzip tabix fastqc; do
      printf '%-12s %s\n' "$t" "$(command -v $t || echo MISSING)"
    done
+   gatk --version
    ```
-4. **Check the reference is indexed** — bwa indices and the `.fai`/`.dict` must sit
+2. **Check the reference is indexed** — bwa indices and the `.fai`/`.dict` must sit
    next to the fasta:
    ```bash
    ls PublicData/hg19/ucsc.hg19.fasta.{amb,ann,bwt,pac,sa,fai}
    ```
    If `ucsc.hg19.dict` is missing: `picard CreateSequenceDictionary R=ucsc.hg19.fasta`
-5. **Check ANNOVAR reachable:**
+3. **Check ANNOVAR reachable:**
    ```bash
    ls /mnt/nas/Kilo/ds1821p_III/annovar_20200608/annovar_src/table_annovar.pl
    ```
@@ -228,16 +250,48 @@ conda activate haloplex
 
 ## Running
 
+The pipeline runs in **two stages**.
+
+**Stage 1 — per sample.** Aligns and emits one GVCF per sample. No genotypes yet.
+
 ```bash
+conda activate haloplex
 cd haloplex
-python3 generate_haloplex_sh.py -j settings.json     # writes one .sh per sample
-bash <script_dir>/Haloplex_18.sh                     # single sample
-ls <script_dir>/*.sh | xargs -P 4 -n 1 bash          # 4 samples in parallel
+python3 generate_haloplex_sh.py -j settings.json     # one .sh per sample
+bash <script_dir>/Haloplex_18.sh                     # a single sample
+ls <script_dir>/*.sh | xargs -P 4 -n 1 bash          # 4 samples at a time
 ```
+
+**Stage 2 — the cohort, once.** Joint genotyping, filtering, annotation.
+
+```bash
+./run_cohort.sh settings.json
+```
+
+`run_cohort.sh` refuses to run on a partial cohort: joint genotyping a subset
+produces different allele frequencies and different genotypes than the full set,
+so a half-finished run must not be mistaken for a finished one. Override with
+`COHORT_ALLOW_PARTIAL=1` only if you mean it.
 
 The step-token/lock design is inherited unchanged from the WES pipeline: each step
 writes a `token.<sample>.<step>` file on success and is skipped on re-run, and a
-first/final lock pair prevents two machines running the same sample.
+first/final lock pair prevents two machines running the same sample. Stage 2 is
+likewise resumable — each artefact is skipped if it already exists.
+
+### Why joint genotyping
+
+Per-sample calling was the WES pipeline's model; this one defers genotyping to
+the cohort. That buys three things:
+
+1. **A squared-off matrix.** Every sample gets a genotype at every site the cohort
+   varies at, so "homozygous reference" stops being indistinguishable from "no
+   coverage here". For a cohort VCF that distinction is the whole point.
+2. **Sensitivity at low coverage.** A weak signal in one sample is judged in the
+   light of confident calls at the same site across the other 142.
+3. **One consistent set of thresholds** applied across the cohort, rather than 143
+   independent decisions.
+
+It does **not** make VQSR usable — see above.
 
 ---
 
@@ -249,18 +303,18 @@ first/final lock pair prevents two machines running the same sample.
    are hg19. The folder name looks like a leftover from an earlier hg38 attempt.
    This pipeline is hg19 throughout. Confirm that is what is wanted.
 
-2. **Single-sample vs joint calling.** Both LabBandSB pipelines are explicitly
-   "single sample". With 143 samples, joint genotyping (`-ERC GVCF` →
-   `CombineGVCFs` → `GenotypeGVCFs`) would give better sensitivity at low coverage
-   and consistent reference/no-call distinction across the cohort — which matters
-   for a cohort VCF. It would also make VQSR trainable again. This is an
-   architectural change and is deliberately *not* in this version.
+2. ~~**Single-sample vs joint calling.**~~ **Decided: joint.** Implemented as
+   `-ERC GVCF` per sample → `GenomicsDBImport` → `GenotypeGVCFs`. Note the
+   correction to an earlier claim of mine: joint calling does *not* make VQSR
+   trainable at this panel size. Hard filtering remains.
 
-3. **Sample `Haloplex_336`.** Present in the cohort VCF header, no raw data found on
-   any NAS. `Haloplex_39` and `Haloplex_577` were also missing from the main project
-   directory but were found in the Kilo archive under different names
-   (`Sample39_R[12].fastq.gz`, `577_S1_R[12]_001.fastq.gz`) and copied into
-   `workflow/haloplex/from_kilo_archive/`. `336` may likewise be a renamed file.
+3. ~~**Sample `Haloplex_336`.**~~ **Resolved — nothing is missing.**
+   `Important_ChangeLog.txt` in the Lustre archive on mng001 records a 2018-09-03
+   correction: `577 -> 527` and `336 -> 369`. The cohort VCF still carries the old,
+   wrong numbers, which is exactly why `369` and `527` looked like extras on disk.
+   **Consequence:** joining new results back to the old VCF by sample name will
+   silently fail for those two. Decide once whether to keep the corrected names
+   (recommended) or map back, and record the mapping with the output.
 
 4. **Comparison against the previous analysis.** Timestamped BAMs
    (`..._Sorted__29Aug2018_..._reHeader__04Mar2019_...bam`) sit next to the panel on
