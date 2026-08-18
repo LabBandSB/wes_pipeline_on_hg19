@@ -132,11 +132,22 @@ def main():
     if missing:
         sys.exit(f"ERROR: settings.json is missing required keys: {', '.join(missing)}")
 
+    # Only path-like keys are checked on disk. cohort_name is a label, and
+    # cohort_dir is created below, so neither is expected to exist yet.
+    NOT_PATHS = {"annovar_protocol", "annovar_operation", "cohort_name", "cohort_dir"}
     for key in REQUIRED:
-        if key.startswith("annovar_") and key in ("annovar_protocol", "annovar_operation"):
+        if key in NOT_PATHS:
             continue
         if not os.path.exists(d[key]):
             print(f"WARNING: {key} does not exist: {d[key]}", file=sys.stderr)
+
+    # The tool names must actually resolve, or the failure surfaces 200 lines into
+    # a generated script as "command not found" — which is how gatk3 slipped past.
+    import shutil
+    for key in ("gatk", "bwa", "samtools", "picard"):
+        if not shutil.which(d[key]):
+            print(f"WARNING: {key}={d[key]!r} is not on PATH — "
+                  f"is the conda env active?", file=sys.stderr)
 
     n_prot = len(d["annovar_protocol"].split(","))
     n_oper = len(d["annovar_operation"].split(","))

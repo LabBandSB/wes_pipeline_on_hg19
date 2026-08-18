@@ -46,7 +46,7 @@
     "bcftools": "bcftools",
     "java": "java",
     "picard": "picard",
-    "gatk": "gatk3",
+    "gatk": "gatk",
     "vcf_concat": "vcf-concat",
     "vcf_sort": "vcf-sort",
     "vcf_merge": "vcf-merge",
