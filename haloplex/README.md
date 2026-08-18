@@ -204,21 +204,23 @@ cardio panel — leave them out unless a specific question needs them.
 ## Conda environment
 
 ```bash
-conda env create -f environment.yml --override-channels -c conda-forge -c bioconda
+# once per machine — see the note below
+conda config --system --remove channels defaults
+conda config --system --set channel_priority strict
+
+conda env create -f environment.yml
 conda activate haloplex
 ```
 
-> **`--override-channels` is not optional.** Recent conda versions refuse to solve
-> against `repo.anaconda.com` until its commercial Terms of Service are accepted,
-> failing with `CondaToSNonInteractiveError`. Accepting those terms on an
+> **Clear `defaults` first, or the solve fails.** Recent conda refuses to touch
+> `repo.anaconda.com/pkgs/{main,r}` until their commercial Terms of Service are
+> accepted, dying with `CondaToSNonInteractiveError`. Accepting those on an
 > institution's behalf is not a call to make in passing, and it is unnecessary —
-> everything here is in conda-forge and bioconda. If conda still reaches for
-> `defaults`, clear it once:
+> every dependency here is in conda-forge or bioconda.
 >
-> ```bash
-> conda config --system --remove channels defaults
-> conda config --system --set channel_priority strict
-> ```
+> Note `conda env create` has **no** `--override-channels` / `-c` flags (those
+> belong to `conda create`, a different command), so the channel list has to come
+> from the config and the yml. Verified on conda 26.5.3.
 
 ### Why GATK 4
 
