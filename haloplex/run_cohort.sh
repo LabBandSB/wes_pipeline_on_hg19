@@ -158,7 +158,13 @@ echo "    PASS:     $(bcftools view -f PASS -H "$FINAL" 2>/dev/null | wc -l)"
 # ---------------------------------------------------------------- ANNOVAR
 # Annotate once on the cohort VCF rather than 143 times per sample — same result,
 # a fraction of the work, and one file to reason about.
-if [ -d "$ANNOVAR_DB" ] && [ -f "$ANNOVAR_DIR/table_annovar.pl" ]; then
+# table_annovar.pl shells out to convert2annovar.pl and annotate_variation.pl by
+# bare name, so ANNOVAR_DIR must be on PATH *and* the scripts must be executable.
+# A read-only CIFS mount cannot carry the execute bit — running ANNOVAR directly
+# off the NAS fails with "convert2annovar.pl: Permission denied". Keep the scripts
+# local; only humandb stays on the NAS.
+export PATH="$ANNOVAR_DIR:$PATH"
+if [ -d "$ANNOVAR_DB" ] && [ -x "$ANNOVAR_DIR/table_annovar.pl" ]; then
     OUT="$COHORT/${COHORT_NAME}.annovar"
     if [ ! -f "${OUT}.hg19_multianno.txt" ]; then
         echo "--- ANNOVAR $(date +%H:%M:%S)"
@@ -173,10 +179,12 @@ if [ -d "$ANNOVAR_DB" ] && [ -f "$ANNOVAR_DIR/table_annovar.pl" ]; then
     fi
     echo "    annotated: ${OUT}.hg19_multianno.txt"
 else
-    echo "--- ANNOVAR skipped: humandb or table_annovar.pl not reachable"
-    echo "    ANNOVAR_DIR=$ANNOVAR_DIR"
-    echo "    ANNOVAR_DB=$ANNOVAR_DB"
-    echo "    (the NAS mounts are systemd automounts — 'ls' the path once to wake them)"
+    echo "--- ANNOVAR skipped"
+    echo "    ANNOVAR_DIR=$ANNOVAR_DIR  (table_annovar.pl executable: $([ -x "$ANNOVAR_DIR/table_annovar.pl" ] && echo yes || echo NO))"
+    echo "    ANNOVAR_DB=$ANNOVAR_DB   (present: $([ -d "$ANNOVAR_DB" ] && echo yes || echo NO))"
+    echo "    If the scripts are not executable, they are probably still on the NAS."
+    echo "    Fix: cp <nas>/annovar_src/*.pl $ANNOVAR_DIR/ && chmod +x $ANNOVAR_DIR/*.pl"
+    echo "    (NAS mounts are systemd automounts — 'ls' the path once to wake them)"
 fi
 
 # ---------------------------------------------------------------- coverage QC

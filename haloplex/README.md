@@ -94,7 +94,7 @@ signature, not a bad library.
 
 **Why.** The WES template restricts `BaseRecalibrator` with `-L ${target_region}`.
 Over a 71 Mb exome that leaves plenty of known sites to fit covariate tables. Over
-51.9 kb it leaves a few hundred — far below what GATK needs for a stable estimate.
+464 kb it leaves a few thousand at best — far below what GATK needs for a stable estimate.
 The outcome is either an error or, worse, a confident but meaningless
 recalibration applied to every base.
 
@@ -111,13 +111,13 @@ sequencer are used as-is.
 admitting it, and a `--maxGaussians 1` workaround that suppresses the "no data"
 crash without making the model meaningful.
 
-One sample over 51.9 kb yields on the order of tens of variants. No amount of tuning
+One sample over 464 kb yields on the order of tens of variants. No amount of tuning
 makes a Gaussian mixture model trainable on that. GATK's own documented fallback for
 small targets is hard filtering — which the WES template already ran downstream of
 VQSR anyway. We keep that and drop the pretence.
 
 **And joint genotyping does not change this**, contrary to the natural assumption
-(including one I made earlier and am correcting here). 143 samples across 51.9 kb
+(including one I made earlier and am correcting here). 143 samples across 464 kb
 give on the order of hundreds to ~1500 variant *sites* — VariantRecalibrator wants
 thousands. The cohort is wide, not deep: joint calling adds samples per site, not
 sites. Hard filtering stays, and it lives in `run_cohort.sh`.
@@ -183,6 +183,13 @@ delimiter collapses many fastq files into one sample.
 ---
 
 ## ANNOVAR
+
+> **Scripts local, databases remote.** `table_annovar.pl` shells out to
+> `convert2annovar.pl` and `annotate_variation.pl` **by bare name**, expecting them
+> on `PATH` and executable. A read-only CIFS mount cannot carry the execute bit, so
+> running ANNOVAR straight off the NAS dies with
+> `sh: 1: convert2annovar.pl: Permission denied`. The six perl scripts total 528 KB
+> — copy them to local disk and `chmod +x`. Only `humandb` (2.0 TB) stays on the NAS.
 
 **Nothing needs downloading.** A complete `humandb` already exists on the Kilo NAS:
 
