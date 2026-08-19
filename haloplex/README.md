@@ -20,19 +20,42 @@ they are actively wrong, and silently so.
 | Run date | 2018-05-17 |
 | Finalized | 2019-03-04 |
 
-BED files (exported from SureDesign, found on the Kilo NAS):
+### There are TWO designs on the NAS. Use the right one.
 
-| File | Regions | Total bp | Used for |
+| Design | Regions | Total bp | refGene genes |
 |---|---|---|---|
-| `ZMF96cardio_1_Covered.bed` | 60 | **51 895** (51.9 kb) | variant calling (`-L`) |
-| `ZMF96cardio_1_Regions.bed` | 60 | 55 515 | reference |
-| `ZMF96cardio_1_Amplicons.bed` | 1202 | 240 028 | coverage QC |
-| `ZMF96cardio_1_AllTracks.bed` | 1430 | — | reference |
+| **`22408-1387190209_Regions.bed`** ✅ | 2007 | **463 767** (464 kb) | **111** |
+| `ZMF96cardio_1_*` ❌ | 1425 | 351 759 | **14** |
 
-Chromosomes touched: chr1, 2, 3, 4, 7, 10, 12, 15, 17, 18, 19.
+Both carry an "Agilent HaloPlex — ZMF96cardio" track name, and `ZMF96cardio_1`
+sits one directory *deeper* (`Ulykbek_CardioPanel_96/Haloplex_merged_fastq_gz/
+ZMF96cardio_1/`) than the correct one, which is at the top of
+`Ulykbek_CardioPanel_96/`. It is very easy to grab the wrong one — this pipeline
+did, on its first run.
 
-**51.9 kb is the number that drives almost every decision below.** It is about
-1/1400th of an exome. Methods that are routine at exome scale run out of data here.
+**How the mistake was caught, and how to catch it again:** ask the *data*, not the
+filenames. Take one aligned BAM and see where coverage actually is:
+
+```bash
+samtools depth sample.bam | awk '$3>=20' | wc -l          # bases at >=20x
+```
+
+A sample BAM has **818.7 kb** at ≥20×. Only **41.9%** of that falls inside
+`ZMF96cardio_1`; the other **476 kb across 166 genes** — `MYBPC3`, `MYH7`, `PKP2`,
+`DSP`, `KCNQ1`, `TNNT2`, `DES`, `CACNA1C` — lay outside it. Calling restricted to
+that BED would have silently dropped the most clinically important
+cardiomyopathy genes while producing perfectly healthy-looking output.
+
+If the covered footprint and the BED disagree by more than a rounding error, the
+BED is wrong. `runs.txt` is no help either: it names design `62192-1551680838`,
+finalized 2019-03-04 — *after* these samples were sequenced in 2016–2018, so it
+cannot be the design used.
+
+`22408-1387190209` ships no separate amplicons track, so coverage QC uses the same
+regions file as calling. Chromosomes touched: 1–8, 10–12, 14–20, 22, X.
+
+**464 kb still drives every decision below.** It is about 1/150th of an exome —
+small enough that BQSR and VQSR remain unusable, as argued in each section.
 
 ---
 

@@ -26,8 +26,10 @@
     "oneKG_snp": "/workspace/askhat-molkenov/PublicData/hg19/1000G_phase1.snps.high_confidence.hg19.sites.vcf",
     "onmi_snp": "/workspace/askhat-molkenov/PublicData/hg19/1000G_omni2.5.hg19.sites.vcf",
 
-    "target_region": "/workspace/askhat-molkenov/workflow/haloplex/panel_bed/ZMF96cardio_1_Covered.bed",
-    "amplicons_region": "/workspace/askhat-molkenov/workflow/haloplex/panel_bed/ZMF96cardio_1_Amplicons.bed",
+    "target_region": "/workspace/askhat-molkenov/workflow/haloplex/panel_bed/22408-1387190209_Regions.bed",
+    "amplicons_region": "/workspace/askhat-molkenov/workflow/haloplex/panel_bed/22408-1387190209_Regions.bed",
+
+    "_comment_bed": "Design 22408-1387190209 (track name \"Agilent HaloPlex - ZMF96cardio\"): 2007 regions, 464 kb, 111 refGene genes. NOT ZMF96cardio_1, which is a 14-gene subset design sitting one directory deeper — using it discarded 58% of the sequenced bases including MYBPC3, MYH7, PKP2, DSP, KCNQ1, TNNT2. Verified empirically: a sample BAM has 818.7 kb at >=20x, only 41.9% of which falls inside ZMF96cardio_1. This design ships no separate amplicons track, so coverage QC uses the same regions file.",
     "interval_padding": "50",
 
     "platform_unit": "HaloPlex_ZMF96cardio_1",
