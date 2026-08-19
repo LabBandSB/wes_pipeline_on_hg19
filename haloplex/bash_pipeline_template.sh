@@ -221,13 +221,13 @@ echo ${dt1} ${dt2} > ${token} \
 ###################################################################
 # HALOPLEX: panel coverage QC — NEW step, absent from the WES template.
 #
-# On a 51.9 kb panel, coverage is the first thing that goes wrong and the
+# On a 464 kb panel, coverage is the first thing that goes wrong and the
 # easiest to miss: a sample that failed enrichment still produces a valid-looking
 # GVCF, just with fewer calls. This makes that visible per sample.
 #
 # Note the two different BEDs. Depth is measured over the Amplicons BED (1202
 # amplicons, 240 kb) because that is what was physically amplified, while calling
-# above used the Covered BED (60 regions, 51.9 kb). Using the wrong one is the
+# above used the Covered BED (60 regions, 464 kb). Using the wrong one is the
 # classic HaloPlex QC mistake — it yields plausible numbers that mean something
 # else entirely.
 ###################################################################
