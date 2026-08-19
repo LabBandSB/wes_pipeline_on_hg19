@@ -96,6 +96,11 @@ echo ${dt1} ${dt2} > ${token} \
 
 
 # samtools sort bam to bam
+# HALOPLEX: -l 6 (default) instead of -l 9, and -@ threads instead of single-core.
+# Measured on this cohort: sort at -l 9 single-threaded had a median of 904 s and a
+# worst case of 97 min — 58% of total per-sample time, more than bwa and
+# HaplotypeCaller combined. Level 9 buys roughly a tenth of the file size for
+# several times the CPU, and the sort was using one core while fifteen sat idle.
 token="${alignment_dir}/token.${sample}.bam_2_bam_samtools_sort"
 input_file="${alignment_dir}/${sample}.samtools_view.bam"
 output_file="${alignment_dir}/${sample}.samtools_sort.bam"
@@ -104,7 +109,7 @@ output_file="${alignment_dir}/${sample}.samtools_sort.bam"
 rm -f ${output_file} && \
 dt1=`date +%y%m%d_%H%M%S` && \
 echo ${dt1} ${token} && \
-${samtools} sort -l 9 -O bam -T ${alignment_dir}/${sample}.sorted.tmp ${input_file} > ${output_file} && \
+${samtools} sort -l 6 -@ ${threads} -O bam -T ${alignment_dir}/${sample}.sorted.tmp ${input_file} > ${output_file} && \
 [ -s ${output_file} ] && \
 du ${output_file} > ${output_file}.${dt1}.du && \
 md5sum ${output_file} > ${output_file}.${dt1}.md5 && \
