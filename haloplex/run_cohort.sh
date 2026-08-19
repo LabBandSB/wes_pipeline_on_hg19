@@ -75,6 +75,20 @@ if [ "$n" -lt "$EXPECTED" ]; then
 fi
 
 # ---------------------------------------------------------------- GenomicsDB
+#
+# --merge-input-intervals is NOT optional here, it is what makes this step
+# survive. GATK itself warns:
+#
+#   "A large number of intervals were specified. Using more than 100 intervals
+#    in a single import is not recommended and can cause performance to suffer."
+#
+# This panel has 2007 intervals. GenomicsDB builds a separate TileDB array per
+# interval and holds their structures in NATIVE memory, outside the JVM heap —
+# so -Xmx does not bound it. Without merging, the process grew to 47 GB RSS on a
+# 47 GB machine and was killed by the OOM killer after 45 minutes, having built
+# 1721 of the arrays. Merging adjacent/overlapping regions (they overlap anyway
+# once padded by ${PADDING} bp) collapses those thousands of arrays into a
+# handful without changing which bases are genotyped.
 DB="$COHORT/genomicsdb"
 if [ ! -d "$DB" ]; then
     echo "--- GenomicsDBImport $(date +%H:%M:%S)"
@@ -83,8 +97,9 @@ if [ ! -d "$DB" ]; then
         --genomicsdb-workspace-path "$DB" \
         -L "$TARGET" \
         --interval-padding "$PADDING" \
+        --merge-input-intervals \
         --batch-size 50 \
-        --reader-threads "$THREADS" || exit 1
+        --reader-threads 1 || { echo "ERROR: GenomicsDBImport failed" >&2; exit 1; }
 else
     echo "--- GenomicsDBImport skipped (workspace exists: $DB)"
 fi
