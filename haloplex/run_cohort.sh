@@ -18,8 +18,10 @@
 #      143 independent decisions.
 #
 # What it does NOT buy, despite a common expectation: VQSR. 143 samples over
-# 51.9 kb yield on the order of hundreds to ~1500 variant sites. VariantRecalibrator
-# needs thousands to fit a Gaussian mixture. Hard filtering below stays.
+# 464 kb yield on the order of a few thousand variant sites at most, and
+# VariantRecalibrator wants that many per annotation just to fit stably. The
+# cohort is wide, not deep — joint calling adds samples per site, not sites.
+# Hard filtering below stays.
 
 set -u
 SETTINGS="${1:-settings.json}"

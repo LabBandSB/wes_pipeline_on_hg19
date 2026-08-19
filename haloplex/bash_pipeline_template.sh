@@ -6,8 +6,23 @@
 # Derived from ../new_version/bash_pipeline_template.sh (WES). Every deviation is
 # marked "HALOPLEX:" with the reason. Read haloplex/README.md before changing any.
 
+###################################################################
+# HALOPLEX: every step tests its input with -s (non-empty), not -f (exists),
+# and verifies its own output is non-empty before writing the success token.
+#
+# Why this is not paranoia. On 2026-08-19 a `bwa mem` process was killed while
+# its wrapper script kept running. bwa left a 0-byte SAM. `samtools view` on an
+# empty SAM exits 0 and writes an empty BAM — so the token was written. Sort,
+# AddOrReplaceReadGroups and the coverage step all then "succeeded" on empty
+# input, the FINAL_LOCK was set, and Haloplex_472 looked complete in six seconds
+# with 0 of its 2 432 860 read pairs. Nothing errored. A re-run would have
+# skipped it.
+#
+# Emptiness must not propagate as success.
+###################################################################
+
 mkdir -p ${alignment_dir}
-# HALOPLEX: the panel is 51.9 kb, not a 71 Mb exome. 64G of heap was sized for
+# HALOPLEX: the panel is 464 kb, not a 71 Mb exome. 64G of heap was sized for
 # whole-exome BAMs; here it only slows JVM startup.
 XMXVALUE="8G"
 
@@ -48,12 +63,13 @@ rm -f ${FINAL_LOCK} \
 token="${alignment_dir}/token.${sample}.fastq_2_sam_bwa_mem"
 output_file="${alignment_dir}/${sample}.bwa_mem.sam"
 [ ! -f ${token} ] && \
-[ -f ${read1} ] && \
-[ -f ${read2} ] && \
+[ -s ${read1} ] && \
+[ -s ${read2} ] && \
 rm -f ${output_file} && \
 dt1=`date +%y%m%d_%H%M%S` && \
 echo ${dt1} ${token} && \
 ${bwa} mem -M -t ${threads} ${ref} ${read1} ${read2} > ${output_file} && \
+[ -s ${output_file} ] && \
 du ${output_file} > ${output_file}.${dt1}.du && \
 md5sum ${output_file} > ${output_file}.${dt1}.md5 && \
 dt2=`date +%y%m%d_%H%M%S` && \
@@ -66,11 +82,12 @@ token="${alignment_dir}/token.${sample}.sam_2_bam_samtools_view"
 input_file="${alignment_dir}/${sample}.bwa_mem.sam"
 output_file="${alignment_dir}/${sample}.samtools_view.bam"
 [ ! -f ${token} ] && \
-[ -f ${input_file} ] && \
+[ -s ${input_file} ] && \
 rm -f ${output_file} && \
 dt1=`date +%y%m%d_%H%M%S` && \
 echo ${dt1} ${token} && \
 ${samtools} view -bT ${ref} ${input_file} > ${output_file} && \
+[ -s ${output_file} ] && \
 du ${output_file} > ${output_file}.${dt1}.du && \
 md5sum ${output_file} > ${output_file}.${dt1}.md5 && \
 dt2=`date +%y%m%d_%H%M%S` && \
@@ -83,11 +100,12 @@ token="${alignment_dir}/token.${sample}.bam_2_bam_samtools_sort"
 input_file="${alignment_dir}/${sample}.samtools_view.bam"
 output_file="${alignment_dir}/${sample}.samtools_sort.bam"
 [ ! -f ${token} ] && \
-[ -f ${input_file} ] && \
+[ -s ${input_file} ] && \
 rm -f ${output_file} && \
 dt1=`date +%y%m%d_%H%M%S` && \
 echo ${dt1} ${token} && \
 ${samtools} sort -l 9 -O bam -T ${alignment_dir}/${sample}.sorted.tmp ${input_file} > ${output_file} && \
+[ -s ${output_file} ] && \
 du ${output_file} > ${output_file}.${dt1}.du && \
 md5sum ${output_file} > ${output_file}.${dt1}.md5 && \
 dt2=`date +%y%m%d_%H%M%S` && \
@@ -102,7 +120,7 @@ token="${alignment_dir}/token.${sample}.bam_2_bam_picard_ARRG"
 input_file="${alignment_dir}/${sample}.samtools_sort.bam"
 output_file="${alignment_dir}/${sample}.picard_ARRG.bam"
 [ ! -f ${token} ] && \
-[ -f ${input_file} ] && \
+[ -s ${input_file} ] && \
 rm -f ${output_file} && \
 dt1=`date +%y%m%d_%H%M%S` && \
 echo ${dt1} ${token} && \
@@ -119,6 +137,7 @@ ${picard} AddOrReplaceReadGroups \
   CREATE_INDEX=true \
   VALIDATION_STRINGENCY=LENIENT \
   MAX_RECORDS_IN_RAM=1000000 && \
+[ "$(${samtools} view -c ${output_file})" -gt 0 ] && \
 du ${output_file} > ${output_file}.${dt1}.du && \
 md5sum ${output_file} > ${output_file}.${dt1}.md5 && \
 dt2=`date +%y%m%d_%H%M%S` && \
@@ -154,10 +173,10 @@ echo ${dt1} ${dt2} > ${token} \
 #
 # The WES template restricts BaseRecalibrator with -L ${target_region}. With a
 # 71 Mb exome that leaves plenty of known sites to build covariate tables from.
-# This panel is 51.9 kb across 60 regions — roughly 1400x less territory. The
-# model would be fitted on a few hundred known sites, far below what GATK needs
-# for a stable estimate; the result is either an error or, worse, a confidently
-# wrong recalibration applied to every base.
+# This panel is 464 kb across 2007 regions — roughly 150x less territory. The
+# model would be fitted on a few thousand known sites at best, below what GATK
+# needs for a stable estimate; the result is either an error or, worse, a
+# confidently wrong recalibration applied to every base.
 #
 # Running BQSR unrestricted does not help: panel data has very few off-target
 # reads to widen the training set with. Base qualities are used as-is.
@@ -179,7 +198,7 @@ token="${alignment_dir}/token.${sample}.bam_2_gvcf_gatk_HC"
 input_file="${alignment_dir}/${sample}.picard_ARRG.bam"
 output_file="${alignment_dir}/${sample}.g.vcf.gz"
 [ ! -f ${token} ] && \
-[ -f ${input_file} ] && \
+[ -s ${input_file} ] && \
 rm -f ${output_file} && \
 dt1=`date +%y%m%d_%H%M%S` && \
 echo ${dt1} ${token} && \
@@ -216,7 +235,7 @@ token="${alignment_dir}/token.${sample}.bam_2_txt_coverage_qc"
 input_file="${alignment_dir}/${sample}.picard_ARRG.bam"
 output_file="${alignment_dir}/${sample}.panel_coverage.txt"
 [ ! -f ${token} ] && \
-[ -f ${input_file} ] && \
+[ -s ${input_file} ] && \
 rm -f ${output_file} && \
 dt1=`date +%y%m%d_%H%M%S` && \
 echo ${dt1} ${token} && \
