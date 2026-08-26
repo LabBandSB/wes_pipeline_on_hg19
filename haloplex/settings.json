@@ -1,0 +1,57 @@
+{
+    "_comment_paths": "Paths below are for lbsb-hp-z800 (10.1.130.121). Change them, not the code.",
+
+    "fastq_dirs_list": [
+        "/workspace/askhat-molkenov/workflow/haloplex/fastq"
+    ],
+    "fastq_extension": ".fastq.gz",
+    "R1_fastq_extension": ".R1.fastq.gz",
+    "R2_fastq_extension": ".R2.fastq.gz",
+    "R1_fastq_delimiter": ".",
+    "R2_fastq_delimiter": ".",
+
+    "project_dir": "/workspace/askhat-molkenov/workflow/haloplex/project",
+    "script_dir": "/workspace/askhat-molkenov/workflow/haloplex/scripts",
+    "cohort_dir": "/workspace/askhat-molkenov/workflow/haloplex/cohort",
+    "cohort_name": "cardiopanel_haloplex_nla",
+
+    "_comment_delimiter": "Sample files are named Haloplex_18.i7_160606.R1.fastq.gz — the sample id is everything before the FIRST dot, so the delimiter is '.', not '_' as in the WES defaults. With '_' every sample would collapse to the single name 'Haloplex'.",
+
+    "ref": "/workspace/askhat-molkenov/PublicData/hg19/ucsc.hg19.fasta",
+    "ref_ucsc_hg19": "/workspace/askhat-molkenov/PublicData/hg19/ucsc.hg19.fasta",
+    "dbsnp": "/workspace/askhat-molkenov/PublicData/hg19/dbsnp_138.hg19.vcf",
+    "gold_indel": "/workspace/askhat-molkenov/PublicData/hg19/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf",
+    "hapmap_snp": "/workspace/askhat-molkenov/PublicData/hg19/hapmap_3.3.hg19.sites.vcf",
+    "oneKG_indel": "/workspace/askhat-molkenov/PublicData/hg19/1000G_phase1.indels.hg19.sites.vcf",
+    "oneKG_snp": "/workspace/askhat-molkenov/PublicData/hg19/1000G_phase1.snps.high_confidence.hg19.sites.vcf",
+    "onmi_snp": "/workspace/askhat-molkenov/PublicData/hg19/1000G_omni2.5.hg19.sites.vcf",
+
+    "target_region": "/workspace/askhat-molkenov/workflow/haloplex/panel_bed/22408-1387190209_Regions.bed",
+    "amplicons_region": "/workspace/askhat-molkenov/workflow/haloplex/panel_bed/22408-1387190209_Regions.bed",
+
+    "_comment_bed": "Design 22408-1387190209 (track name \"Agilent HaloPlex - ZMF96cardio\"): 2007 regions, 464 kb, 111 refGene genes. NOT ZMF96cardio_1, which is a 14-gene subset design sitting one directory deeper — using it discarded 58% of the sequenced bases including MYBPC3, MYH7, PKP2, DSP, KCNQ1, TNNT2. Verified empirically: a sample BAM has 818.7 kb at >=20x, only 41.9% of which falls inside ZMF96cardio_1. This design ships no separate amplicons track, so coverage QC uses the same regions file.",
+    "interval_padding": "50",
+
+    "platform_unit": "HaloPlex_ZMF96cardio_1",
+    "threads": "4",
+
+    "annovar_dir": "/workspace/askhat-molkenov/tools/annovar",
+    "annovar_humandb": "/mnt/nas/Kilo/ds1821p_III/annovar_20200608/annovar_src/humandb",
+    "annovar_protocol": "refGene,avsnp151,clinvar_20240917,dbnsfp42a,gnomad211_exome,intervar_20180118,dbscsnv11,revel",
+    "annovar_operation": "g,f,f,f,f,f,f,f",
+
+    "_comment_annovar": "SCRIPTS must be LOCAL and executable; DATABASES stay on the NAS. table_annovar.pl invokes convert2annovar.pl and annotate_variation.pl by bare name, expecting them on PATH and executable — and a read-only CIFS mount cannot carry the execute bit, so running ANNOVAR straight off the NAS dies with 'convert2annovar.pl: Permission denied'. The six perl scripts are 528 KB; copy them to annovar_dir and chmod +x. humandb lives on the Kilo NAS mount (read-only) and is 2.0 TB. Nothing needs downloading. The protocol list is deliberately small: refGene for consequence, avsnp151 for rsIDs, clinvar for clinical assertions, dbnsfp42a for in-silico predictors, gnomad211_exome for population frequency, intervar for ACMG-style classification, dbscsnv11 for splice-site effects, revel for missense pathogenicity. CADD/FATHMM/Eigen are present on the NAS but are ~350 GB each and add little on a 96-gene cardio panel.",
+
+    "fastqc": "fastqc",
+    "bwa": "bwa",
+    "samtools": "samtools",
+    "bcftools": "bcftools",
+    "java": "java",
+    "picard": "picard",
+    "gatk": "gatk",
+    "vcf_concat": "vcf-concat",
+    "vcf_sort": "vcf-sort",
+    "vcf_merge": "vcf-merge",
+    "bgzip": "bgzip",
+    "tabix": "tabix"
+}
